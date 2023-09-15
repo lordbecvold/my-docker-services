@@ -1,0 +1,64 @@
+version: "3.7"
+
+networks:
+  mynet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.16.1.0/24
+        gateway: 172.16.1.1
+
+services:
+  mysql:
+    build: ./services/mysql
+    restart: always
+    container_name: becvar-service.mysql
+    platform: linux/amd64
+    tty: true
+    networks:
+      mynet:
+        ipv4_address: 172.16.1.2
+    ports:
+      - "3306:3306"
+    volumes:
+      - "./services/mysql/config/mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro"
+      - "./services/mysql/dbdata:/var/lib/mysql"
+    environment:
+      - MYSQL_PASSWORD=root
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=becvar_site
+
+  php:
+    build: ./services/php
+    restart: always
+    container_name: becvar-service.php
+    platform: linux/amd64
+    tty: true
+    depends_on:
+      - mysql
+    networks:
+      mynet:
+        ipv4_address: 172.16.1.3
+    ports:
+      - "9000:9000"
+    volumes:
+      - .:/var/www/becvar.app
+
+  apache:
+    build: ./services/apache
+    restart: always
+    container_name: becvar-service.apache
+    platform: linux/amd64
+    tty: true
+    networks:
+      mynet:
+        ipv4_address: 172.16.1.4
+    depends_on:
+      - php
+      - mysql
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - .:/var/www/becvar.app

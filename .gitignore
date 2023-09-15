@@ -1,0 +1,2 @@
+services/mysql/dbdata
+services/apache/logs/*
